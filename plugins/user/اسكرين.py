@@ -13,7 +13,6 @@ async def screenshot(client: Client, message: Message):
         return
 
     url = message.text.split(None, 1)[1]
-
     out_file = f"screenshot_{message.id}.png"
 
     try:
@@ -35,26 +34,25 @@ async def screenshot(client: Client, message: Message):
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
                     '--no-first-run',
-                    '--no-zygote',
-                    '--single-process'
                 ],
             )
 
-            context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-            )
+            try:
+                context = await browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                )
+                page = await context.new_page()
 
-            page = await context.new_page()
+                await message.edit("جاري تحميل الصفحة...")
+                await page.goto(url, wait_until="networkidle", timeout=60000)
 
-            await message.edit("جاري تحميل الصفحة...")
-            await page.goto(url, wait_until="networkidle", timeout=60000)
+                await asyncio.sleep(2)
 
-            await asyncio.sleep(2)
+                await message.edit("جاري التقاط الصورة...")
+                await page.screenshot(path=out_file, full_page=True)
 
-            await message.edit("جاري التقاط الصورة...")
-            await page.screenshot(path=out_file, full_page=True)
-
-            await browser.close()
+            finally:
+                await browser.close()
 
             await message.edit("جاري الارسال...")
             await message.reply_photo(
@@ -64,7 +62,7 @@ async def screenshot(client: Client, message: Message):
             )
             await message.delete()
 
-    except (ValueError, OSError) as e:
+    except Exception as e:
         await message.edit(f"حدث خطأ:\n`{str(e)}`")
     finally:
         if os.path.exists(out_file):
